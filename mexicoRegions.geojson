@@ -1,0 +1,194 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Norte",
+        "reg_code": "NOR",
+        "color": "#FF5733",
+        "code_states" : [3, 2, 8, 5, 19, 25, 28]
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-115.0, 32.5],
+            [-115.0, 26.0],
+            [-105.5, 26.0],
+            [-105.5, 32.5],
+            [-115.0, 32.5]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Occidente",
+        "reg_code": "OCC",
+        "color": "#FF8D1A",
+        "code_states" : []
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-106.0, 26.0],
+            [-106.0, 20.0],
+            [-102.0, 20.0],
+            [-102.0, 26.0],
+            [-106.0, 26.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Centro-Norte",
+        "reg_code": "CNO",
+        "color": "#FFC300",
+        "code_states" : []
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-103.0, 26.0],
+            [-103.0, 20.0],
+            [-99.5, 20.0],
+            [-99.5, 26.0],
+            [-103.0, 26.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Centro",
+        "reg_code": "CEN",
+        "color": "#FFE333",
+        "code_states" : []
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-100.0, 20.0],
+            [-100.0, 16.0],
+            [-96.0, 16.0],
+            [-96.0, 20.0],
+            [-100.0, 20.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sur-Este",
+        "reg_code": "SEE",
+        "color": "#FFC0CB",
+        "code_states" : []
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-95.0, 18.0],
+            [-95.0, 14.0],
+            [-90.0, 14.0],
+            [-90.0, 18.0],
+            [-95.0, 18.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pacífico Sur",
+        "reg_code": "PSU",
+        "color": "#FF6F61",
+        "code_states" : []
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-105.0, 20.0],
+            [-105.0, 15.0],
+            [-100.0, 15.0],
+            [-100.0, 20.0],
+            [-105.0, 20.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bajío",
+        "reg_code": "BAJ",
+        "color": "#FFD700",
+        "code_states" : []
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-103.5, 22.0],
+            [-103.5, 19.0],
+            [-100.5, 19.0],
+            [-100.5, 22.0],
+            [-103.5, 22.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Golfo de México",
+        "reg_code": "GOL",
+        "color": "#FFA07A",
+        "code_states" : []
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-98.0, 22.0],
+            [-98.0, 18.0],
+            [-93.0, 18.0],
+            [-93.0, 22.0],
+            [-98.0, 22.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Península de Yucatán",
+        "reg_code": "PEN",
+        "color": "#FF4500",
+        "code_states" : []
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-92.0, 20.0],
+            [-92.0, 16.0],
+            [-88.0, 16.0],
+            [-88.0, 20.0],
+            [-92.0, 20.0]
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+<html>
+    <head>
+      <!-- TO DOs
+        X 1. Make map ocupy 2 right columns of the 3
+        X 2. Add hover region info for each stated
+        3. Add region shapes to the map, 
+        4. Focus on the Chihuahua region
+        5. Add current properties section from inmobiliaria21 (or any available), with a map or any 
+        6. Add Real estate Market indicators
+        7. Potential customers oportunities
+      -->
+
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+        <link rel="stylesheet" href="style.css">
+        <!-- <script src="https://unpkg.com/leaflet-geojson-selector/Leaflet.geojson-selector.min.js"></script>         -->
+      </head>    
+         
+    <body>
+        <div class="header">
+          <h3>Real Estate Analytics Dashboard</h3>
+        </div>
+        <div class="container">
+          <div class="card" id="overview">
+            <h2>Market Overview</h2>
+            <p><strong>Average Property Price:</strong> $1,200,000 MXN</p>
+            <p><strong>Rental Yield:</strong> 8%</p>
+            <p><strong>Vacancy Rate:</strong> 10%</p>
+            <hr>
+            <h2>Real Estate Business Analysis</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Neighborhood</th>
+                  <th>Avg. Price (MXN)</th>
+                  <th>Demand Index</th>
+                  <th>Potential ROI</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Zona Centro</td>
+                  <td>1,500,000</td>
+                  <td>High</td>
+                  <td>12%</td>
+                </tr>
+                <tr>
+                  <td>Delicias</td>
+                  <td>1,200,000</td>
+                  <td>Medium</td>
+                  <td>8%</td>
+                </tr>
+                <tr>
+                  <td>Juárez</td>
+                  <td>1,800,000</td>
+                  <td>Low</td>
+                  <td>6%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card" id="map-section">
+            <div id="map"></div>
+          </div>
+          <!-- <div class="card" id="analytics">
+            <p>This </p>
+          </div> -->
+          <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" ></script>        
+          <script src="https://unpkg.com/@turf/turf/turf.min.js" ></script>        
+          <script src="script.js" ></script>
+        </div>
+    </body>
+</html>
