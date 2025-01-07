@@ -3,6 +3,9 @@
       <!-- TO DOs
         X 1. Make map ocupy 2 right columns of the 3
         X 2. Add hover region info for each stated
+        2.  Add Chihuahua land
+        3 Add Chih city neighborhoods
+        3. focus on Chihuahua city 
         3. Add region shapes to the map, 
         4. Focus on the Chihuahua region
         5. Add current properties section from inmobiliaria21 (or any available), with a map or any 
@@ -14,7 +17,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
         <link rel="stylesheet" href="style.css">
-        <!-- <script src="https://unpkg.com/leaflet-geojson-selector/Leaflet.geojson-selector.min.js"></script>         -->
       </head>    
          
     <body>
@@ -22,12 +24,20 @@
           <h3>Real Estate Analytics Dashboard</h3>
         </div>
         <div class="container">
-          <div class="card" id="overview">
+          <div class="card" id="map-section">
+            <div id="map"></div>
+          </div>
+        </div>
+        <div class="container">
+          <div class="card" id="analytics">
+            <input type="file" id="fileInput" />
             <h2>Market Overview</h2>
             <p><strong>Average Property Price:</strong> $1,200,000 MXN</p>
             <p><strong>Rental Yield:</strong> 8%</p>
             <p><strong>Vacancy Rate:</strong> 10%</p>
             <hr>
+          </div>  
+          <div class="card" id="overview">
             <h2>Real Estate Business Analysis</h2>
             <table>
               <thead>
@@ -60,15 +70,11 @@
               </tbody>
             </table>
           </div>
-          <div class="card" id="map-section">
-            <div id="map"></div>
-          </div>
-          <!-- <div class="card" id="analytics">
-            <p>This </p>
-          </div> -->
-          <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" ></script>        
-          <script src="https://unpkg.com/@turf/turf/turf.min.js" ></script>        
-          <script src="script.js" ></script>
         </div>
-    </body>
+        
+      </body>
+      <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" ></script>        
+      <script src="https://unpkg.com/@turf/turf/turf.min.js" ></script>        
+      <script src="https://unpkg.com/shpjs/dist/shp.js"></script>
+      <script src="script.js" ></script>
 </html>
