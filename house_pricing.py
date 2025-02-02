@@ -30,21 +30,24 @@ SITES = {
 
 
 # Target cities in Chihuahua
-STATE = "Jalisco"
+STATE = "Chihuahua"
 # Function to scrape a single site
 def scrape_site(site_url, city):
     results = []
     if "mercadolibre" in site_url:
         # Example: Simple request-based scraping
-        for t in ["venta", "renta"]:
-            response = requests.get(f"{site_url}{t}/{STATE}/{city}")
+        for t in ["venta","renta"]:
+            full_url = f"{site_url}{t}/{STATE}/{city}"
+            response = requests.get(full_url)
             soup = BeautifulSoup(response.text, "html.parser")
-            f = open(f"mercadilibre_raw_{t}.txt", "a")
-            f.write(response.text)
-            f.close()
-            pagination =soup.select(".andes-pagination__button")
+            pagination = soup.select(".andes-pagination__button")
+            if pagination == []:
+                pagination = [1]
             for page in pagination: 
-                sub_site_url = page.select_one("a").get("href")
+                if page == 1:
+                    sub_site_url = full_url 
+                else:
+                    sub_site_url = page.select_one("a").get("href")
                 if sub_site_url != None:
                     sub_response = requests.get(f"{sub_site_url}")
                     sub_soup = BeautifulSoup(sub_response.text, "html.parser")                
@@ -105,7 +108,7 @@ def scrape_by_state():
     all_data = []
     cities = ["Chihuahua", "Juarez", "Delicias", "Cuauhtémoc", "Hidalgo del Parral"]
     if STATE == "Jalisco":
-        cities = ["Guadalajara", "Tlaquepaque", "Tonala", "Zapopan", "El Salto"]
+        cities = ["Guadalajara", "Tlaquepaque", "Tonala", "Zapopan", "El Salto", "Tlajomulco"]
         neighborhoods = ["Providencia","Club","Bodega", "remate", "Cuarto", "Departamento", "Edificio", "Local", "Oficina","Terreno","Nave","Industrial","Otro"]
     for city in cities:
         for site, url in SITES.items():
@@ -140,19 +143,17 @@ if __name__ == "__main__":
     filter_values = ['Providencia','Club','Bodega', 'remate', 'Departamento', 'Edificio', 'Local', 'Oficina','Terreno','Nave','Industrial','Otro'] 
     filters = '|'.join(filter_values)
     df = df[~df['title'].str.contains(filters, case=False, na=False)]
-
             # - on property_type , filter "Terreno" "Nave Industrial", "Otro"
         # - on title , filter "Locales" "Nave Industrial"
     print(len(df))
     df.to_csv(f"{STATE}_real_estate.csv", index=False)
-    df_venta= df[df['type'].str.contains('venta')]
-    df_renta= df[df['type'].str.contains('renta')]
+    df_venta = df[df['type'].str.contains('venta')]
+    df_renta = df[df['type'].str.contains('renta')]
     print(len(df_venta))
     # df.to_json(f"{STATE}_real_estate.json", orient='records', lines=True)
     # save_to_json(scraped_data, f"{STATE}_real_estate.json")
     df_venta['price'] = df_venta['price'].str.replace('[A-Za-z]', '').str.replace(',', '').astype(int)
     df_grouped_by_city = df_venta.groupby('city').agg({'price': ['mean', 'min', 'max']},{'location': 'count'}).reset_index()
-    print("Data saved to real_estate.json")
     print(df_grouped_by_city)
 
     zipshape = zipfile.ZipFile(open(r'.\\data\\080190001_ColoniasyFraccionamientos_2016.zip', 'rb'))
