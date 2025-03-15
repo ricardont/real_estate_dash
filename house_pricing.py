@@ -11,26 +11,42 @@ import requests
 from geopy.geocoders import Nominatim
 import time
 import pandas as pd
+import geopandas as gpd
+from shapely.geometry import Point, shape
+from shapely.geometry import Point, Polygon
+import pyproj
+from pyproj import Transformer
 # Initialize geolocator
 geolocator = Nominatim(user_agent="geo_locator")
 
 # Websites to scrape
-
-"""
-TO DO:
-- Include neighborhood 
-- Include paginated scrapping
-"""
+# """
+# TO DO:
+# - Include neighborhood 
 SITES = {
     # "inmobiliaria21": "https://www.century21mexico.com/",
     # "inmuebles24": "https://www.inmuebles24.com/"
     "mercadolibre": "https://inmuebles.mercadolibre.com.mx/casas/"
     # "facebook": "https://www.facebook.com/marketplace"
 }
-
-
 # Target cities in Chihuahua
 STATE = "Chihuahua"
+def mercado_libre_detail(url):
+    # url = "https://casa.mercadolibre.com.mx/MLM-3404347540-aprovecha-hermosa-casa-en-venta-en-quintas-del-sol-chihuahua-_JM#polycard_client=search-nordic&position=1&search_layout=grid&type=item&tracking_id=b1588e4b-3ea2-46d0-b389-fd881b700ba2"
+    sub_response = requests.get(f"{url}")
+    item = BeautifulSoup(sub_response.text, "html.parser")                
+    location_url = item.select_one(".ui-vip-location").select_one("img").get("src")
+    lat_lon = location_url.split("center=")[1].split("&zoom")[0].split(",")[0].split("%2C")
+    # ejemplo centro
+    lon, lat = float(lat_lon[1]),  float(lat_lon[0]) 
+    transformer = Transformer.from_crs("EPSG:4326", "EPSG:32613", always_xy=True)  # Adjust EPSG:32613 if needed
+    point_projected = Point(transformer.transform(lon, lat))
+    data = {
+        "latitude": [float(lat)],
+        "longitude": [float(lon)],
+        "geometry": [point_projected ]
+    }
+    return data
 # Function to scrape a single site
 def scrape_site(site_url, city):
     results = []
@@ -64,6 +80,9 @@ def scrape_site(site_url, city):
                         bathrooms = "None" 
                         land_area = "None"
                         contruction_area = "None" 
+                        latitude = "None" 
+                        longitude = "None" 
+                        geometry = "None" 
                         image = listing.select_one(".poly-card__portada").select_one("img").get("data-src") 
                         for attribute in attributes:
                             if attribute:
@@ -73,6 +92,11 @@ def scrape_site(site_url, city):
                                     bedrooms = attribute.text.strip()
                                 else:
                                     bathrooms = attribute.text.strip()
+                        mercado_libre_detail = mercado_libre_detail(f"{link}")
+                        if mercado_libre_detail:
+                            latitude = mercado_libre_detail["latitude"]
+                            longitude = mercado_libre_detail["longitude"]
+                            geometry = mercado_libre_detail["geometry"]
                         data = {
                                 "city": city,
                                 "type": t,
@@ -87,7 +111,10 @@ def scrape_site(site_url, city):
                                 "bedrooms": bedrooms,
                                 "bathrooms": bathrooms,
                                 "contruction_area":contruction_area,
-                                "land_area": land_area
+                                "land_area": land_area,
+                                "latitude" : latitude, 
+                                "longitude" : longitude, 
+                                "geometry" : geometry 
                             }
                         results.append(data)
             
@@ -131,6 +158,28 @@ def save_to_json(data, filename):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
+def mergeChihNeighborhoods(locations_df):
+    zipshape = zipfile.ZipFile(open(r'.\\data\\080190001_ColoniasyFraccionamientos_2016.zip', 'rb'))
+    cpg_file, dbf_file, prj_file, sbn_file, sbx_file, shp_file, xml_file, shx_file = zipshape.namelist()
+    features = shapefile.Reader(
+        shp=zipshape.open(shp_file),
+        shx=zipshape.open(shx_file),
+        dbf=zipshape.open(dbf_file),
+    )  
+    shapes = features.shapes()  # Geometry data
+    records = features.records()  # Attributes
+    # Extract neighborhood names (Replace "NAME_FIELD" with the actual field name)
+    neighborhoods_list = []
+    for record, geom in zip(records, shapes):
+        neighborhoods_list.append({
+            "geometry": shape(geom),  
+            "neighborhood": record["Nombre"]# Replace with correct field index or name
+        })
+    # # Convert to GeoDataFrame
+    locations = gpd.GeoDataFrame(locations_df, geometry='geometry', crs="EPSG:32613")
+    neighborhoods = gpd.GeoDataFrame(neighborhoods_list, geometry='geometry', crs="EPSG:32613")
+    merged = gpd.sjoin(locations, neighborhoods, how="left", predicate="within")
+    return merged
 # Main script
 if __name__ == "__main__":
     scraped_data = scrape_by_state()
@@ -154,17 +203,26 @@ if __name__ == "__main__":
     # save_to_json(scraped_data, f"{STATE}_real_estate.json")
     df_venta['price'] = df_venta['price'].str.replace('[A-Za-z]', '').str.replace(',', '').astype(int)
     df_grouped_by_city = df_venta.groupby('city').agg({'price': ['mean', 'min', 'max']},{'location': 'count'}).reset_index()
-    print(df_grouped_by_city)
+    df_chihuahua = df[df['city'].str.contains('Chihuahua')]
+    df_chihuahua.to_csv(f"{STATE}_real_estate_chihuahua_city.csv", index=False)
+    # link = "https://casa.mercadolibre.com.mx/MLM-3404347540-aprovecha-hermosa-casa-en-venta-en-quintas-del-sol-chihuahua-_JM#polycard_client=search-nordic&position=1&search_layout=grid&type=item&tracking_id=b1588e4b-3ea2-46d0-b389-fd881b700ba2"
+    # mercado_libre_detail = mercado_libre_detail(link)
+    # print(mercado_libre_detail)
 
-    zipshape = zipfile.ZipFile(open(r'.\\data\\080190001_ColoniasyFraccionamientos_2016.zip', 'rb'))
+
    
-    cpg_file, dbf_file, prj_file, sbn_file, sbx_file, shp_file, xml_file, shx_file = zipshape.namelist()
-    features = shapefile.Reader(
-        shp=zipshape.open(shp_file),
-        shx=zipshape.open(shx_file),
-        dbf=zipshape.open(dbf_file),
-    )  
     # print(features)
     # for feature in features:
     #     print(feature.record["Nombre"])
     # print(r.numRecords)
+
+
+
+
+
+
+
+
+
+
+# Transform the point to projected coordinates
