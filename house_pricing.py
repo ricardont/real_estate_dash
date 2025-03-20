@@ -12,8 +12,8 @@ from geopy.geocoders import Nominatim
 import time
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Point, shape
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, shape, Polygon
+from shapely import  wkt
 import pyproj
 from pyproj import Transformer
 from tqdm import tqdm 
@@ -79,12 +79,21 @@ def scrap_mercadolibre(site_url, city):
                 sub_response = requests.get(f"{sub_site_url}")
                 sub_soup = BeautifulSoup(sub_response.text, "html.parser")                
                 for listing in sub_soup.select(".ui-search-result__wrapper"):
-                    propert_type = listing.select_one(".poly-component__headline").text.strip()
-                    title = listing.select_one(".poly-component__title-wrapper").select_one("a").text.strip()
-                    link = listing.select_one(".poly-component__title-wrapper").select_one("a").get("href")
+                    # propert_type = listing.select_one(".poly-component__headline").text.strip()
+                    propert_type = listing.find("tag", {"class": "poly-component__headline"})
+                    if listing.select_one(".poly-component__headline"):
+                        propert_type = listing.select_one(".poly-component__headline").text.strip()
+                    else:
+                        propert_type = "Default Type"
+                    print(propert_type)
+                    if listing.select_one(".poly-component__title-wrapper")
+                        title = listing.select_one(".poly-component__title-wrapper").select_one("a").text.strip()
+                        link = listing.select_one(".poly-component__title-wrapper").select_one("a").get("href")
+                    else:
+                        title = "Default Title"
+                        link  = "Default Link"
                     location = listing.select_one(".poly-component__location").text.strip()
-                    price = listing.select_one(".poly-component__price").text.strip()
-                    amount = listing.select_one(".poly-component__price").select_one(".poly-price__current").select_one(".andes-money-amount").select_one(".andes-money-amount__fraction").text.strip()
+                    price = listing.select_one(".poly-component__price").select_one(".poly-price__current").select_one(".andes-money-amount").select_one(".andes-money-amount__fraction").text.strip()
                     currency = listing.select_one(".poly-component__price").select_one(".poly-price__current").select_one(".andes-money-amount").select_one(".andes-money-amount__currency-symbol").text.strip()
                     attributes = listing.select_one(".poly-component__attributes-list").select_one(".poly-attributes-list").select(".poly-attributes-list__item")
                     bedrooms = "None" 
@@ -117,7 +126,7 @@ def scrap_mercadolibre(site_url, city):
                             "link": link,
                             "image": image,
                             "link": link, 
-                            "price": amount,
+                            "price": price,
                             "currency": currency,
                             "bedrooms": bedrooms,
                             "bathrooms": bathrooms,
@@ -165,7 +174,6 @@ def scrap_by_city():
     filters = '|'.join(filter_values)
     df = df[~df['title'].str.contains(filters, case=False, na=False)]          
     df['price'] = df['price'].str.replace('[A-Za-z]', '').str.replace(',', '').astype(int)
-    df = merge_chih_neighborhoods(df)
     return df 
 
 # Add geolocation to each listing
@@ -182,7 +190,7 @@ def save_to_json(data, filename):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-def merge_chih_neighborhoods(locations_df):
+def add_neighborhoods_to_df(locations_df):
     zipshape = zipfile.ZipFile(open(r'.\\data\\080190001_ColoniasyFraccionamientos_2016.zip', 'rb'))
     cpg_file, dbf_file, prj_file, sbn_file, sbx_file, shp_file, xml_file, shx_file = zipshape.namelist()
     features = shapefile.Reader(
@@ -196,14 +204,17 @@ def merge_chih_neighborhoods(locations_df):
     neighborhoods_list = []
     for record, geom in zip(records, shapes):
         neighborhoods_list.append({
-            "geometry_neighbor": shape(geom),  
             "geometry": shape(geom),
+            "neighborhood_geometry": shape(geom),
             "neighborhood": record["Nombre"]# Replace with correct field index or name
         })
     # # Convert to GeoDataFrame
     locations = gpd.GeoDataFrame(locations_df, geometry='geometry', crs="EPSG:32613")
     neighborhoods = gpd.GeoDataFrame(neighborhoods_list, geometry='geometry', crs="EPSG:32613")
-    merged = gpd.sjoin(locations, neighborhoods, how="left", predicate="within")
+    merged_locations = gpd.sjoin(locations, neighborhoods, how="left", predicate="within")
+    merged_neighborhoods = gpd.sjoin(locations, neighborhoods, how="right", predicate="contains")
+    merged_locations = merged_locations[merged_locations.neighborhood.isnull()]
+    merged = pd.concat([merged_neighborhoods, merged_locations], ignore_index=True).drop_duplicates()
     return merged
 
 def retry_get_location_from_existing_df(df):
@@ -219,14 +230,33 @@ def retry_get_location_from_existing_df(df):
                 df.at[index, "latitude"] = location["latitude"]
                 df.at[index, "longitude"] = location["latitude"]
 # print(features)
+def df_snippets(type="shapefile_convert", df=None, geometry_field="geometry"):
+    output = None
+    if type == "shapefile_convert":
+        gdf = gpd.GeoDataFrame(df, geometry='geometry')
+        gdf.to_file("output.shp", driver="ESRI Shapefile")
+        output = "converted"
+    elif type == "convert_to_csv":
+        df.to_csv("output.csv", index=False)
+    elif type == "group_by_neighborhood":
+        df  = df_chihuahua.groupby(["neighborhood","neighborhood_geometry"])["price"].mean().shift()
+    elif type == "group_by_city":
+        output = df.groupby('city').agg({'price': ['mean', 'min', 'max']},{'location': 'count'}).reset_index()
+    elif type == "filter_city":
+        df_chihuahua = df[df['city'].str.contains('Chihuahua')]
+    elif type == "filter_city_venta":
+        output = df[df['city'].str.contains('Chihuahua')]
+    elif type == "group_by_neighborhood_avg":
+        output  = df_chihuahua.groupby("neighborhood_geometry")["price"].mean()
+    elif type == "add_geometry":
+        # df['geometry_wkt'] = df[f"f{geometry_field}"].apply(wkt.loads)
+        df['geometry_wkt'] = df[f"{geometry_field}"].apply(lambda x: x.wkt)
+    else:
+        print("No snippet found")    
+    return output
 # Main script
 if __name__ == "__main__":
-    scraped_data = scrap_by_city()
-    df = scraped_data
-    df_venta = df[df['type'].str.contains('venta')]
-    df_renta = df[df['type'].str.contains('renta')]
-    df.to_csv(f"{STATE}_real_estate.csv", index=False)
-    df_grouped_by_city = df_venta.groupby('city').agg({'price': ['mean', 'min', 'max']},{'location': 'count'}).reset_index()
-    df_chihuahua = df[df['city'].str.contains('Chihuahua')]
-    df_grouped_by_neighborhood = df_venta.groupby('city').agg({'price': ['mean', 'min', 'max']},{'location': 'count'}).reset_index()
-    df_chihuahua.to_csv(f"{STATE}_real_estate_chihuahua_city.csv", index=False)
+    df = scrap_by_city()
+    df_snippets("convert_to_csv", df)
+
+    
