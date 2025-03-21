@@ -32,33 +32,37 @@ SITES = {
 }
 # Target cities in Chihuahua
 STATE = "Chihuahua"
+def check_response(response):
+    print(response.status_code)
+    if not response or not response.content or response.status_code >= 400:
+        return False
+    return True
 def scrape_mercadolibre_detail(url):
-    print("Scraping detail...")
-    print(url)
     sub_response = requests.get(f"{url}")
-    item = BeautifulSoup(sub_response.text, "html.parser") 
-    # map_url = "center=0.000000%2C0.000000&zoom=15"
-    map_url = item.find("img", src=lambda x: x and "/maps.googleapis.com" in x)
-    if map_url is None and item.select_one("#root-app > div.ui-vip-core > div.ui-pdp-container.ui-pdp-container--pdp").select_one("#ui-pdp-main-container > div.ui-pdp-container__col.col-2.ui-pdp-container--column-left.pb-40 > div.ui-pdp-container__col.col-1.ui-vip-core-container--content-left").select_one("#ui-vip-location__map") is not None:
-        map_url = item.select_one("#root-app > div.ui-vip-core > div.ui-pdp-container.ui-pdp-container--pdp").select_one("#ui-pdp-main-container > div.ui-pdp-container__col.col-2.ui-pdp-container--column-left.pb-40 > div.ui-pdp-container__col.col-1.ui-vip-core-container--content-left").select_one("#ui-vip-location__map").get("src")  
-    if map_url is None and  item.select_one(".ui-vip-location") is not None:
-        map_url = item.select_one(".ui-vip-location").select_one("img")
-    if map_url is not None:
-        lat_lon = map_url.get("src").split("center=")[1].split("&zoom")[0].split(",")[0].split("%2C")
-        # ejemplo centro
-        lon, lat = float(lat_lon[1]),  float(lat_lon[0]) 
-        transformer = Transformer.from_crs("EPSG:4326", "EPSG:32613", always_xy=True) 
-        point_projected = Point(transformer.transform(lon, lat))
-    else:
-        lat = 0.000000
-        lon = 0.000000
-        point_projected = Point(0.000000, 0.000000)
-    data = {
-        "latitude": lat,
-        "longitude": lon,
-        "geometry": point_projected
-    }
-    return data
+    lat = 0.000000
+    lon = 0.000000
+    point_projected = Point(0.000000, 0.000000)
+    print(str(check_response(sub_response)))
+    print(str(check_response(sub_response)))
+    print(str(check_response(sub_response)))
+    print(str(check_response(sub_response)))
+    if check_response(sub_response):
+        with open(f"{url[-10:]}_dtl_mlibre_scrape.txt", "w", encoding="utf-8") as file:
+            file.write(sub_response.text)
+        item = BeautifulSoup(sub_response.text, "html.parser") 
+        url = url.split("?")[0]
+        map_url = item.find("img", src=lambda x: x and "/maps.googleapis.com" in x)
+        if map_url is None and item.select_one("#root-app > div.ui-vip-core > div.ui-pdp-container.ui-pdp-container--pdp").select_one("#ui-pdp-main-container > div.ui-pdp-container__col.col-2.ui-pdp-container--column-left.pb-40 > div.ui-pdp-container__col.col-1.ui-vip-core-container--content-left") and item.select_one("#root-app > div.ui-vip-core > div.ui-pdp-container.ui-pdp-container--pdp").select_one("#ui-pdp-main-container > div.ui-pdp-container__col.col-2.ui-pdp-container--column-left.pb-40 > div.ui-pdp-container__col.col-1.ui-vip-core-container--content-left").select_one("#ui-vip-location__map"):
+            map_url = item.select_one("#root-app > div.ui-vip-core > div.ui-pdp-container.ui-pdp-container--pdp").select_one("#ui-pdp-main-container > div.ui-pdp-container__col.col-2.ui-pdp-container--column-left.pb-40 > div.ui-pdp-container__col.col-1.ui-vip-core-container--content-left").select_one("#ui-vip-location__map").get("src")  
+        if map_url is None and  item.select_one(".ui-vip-location"):
+            map_url = item.select_one(".ui-vip-location").get("src")
+        if map_url:
+            lat_lon = map_url.get("src").split("center=")[1].split("&zoom")[0].split(",")[0].split("%2C")
+            lon, lat = float(lat_lon[1]),  float(lat_lon[0]) 
+            transformer = Transformer.from_crs("EPSG:4326", "EPSG:32613", always_xy=True) 
+            point_projected = Point(transformer.transform(lon, lat))
+    print(f"latitude:{lat}, longitude:{lon}, geometry:{point_projected}")
+    return {"latitude": lat, "longitude": lon, "geometry": point_projected}
 # Function to scrape a single site
 def scrap_mercadolibre(site_url, city):
     results = []
@@ -66,6 +70,8 @@ def scrap_mercadolibre(site_url, city):
     for t in ["venta","renta"]:
         full_url = f"{site_url}{t}/{STATE}/{city}"
         response = requests.get(full_url)
+        with open(f"{t}_{STATE}_{city}_mlibre_scrape.txt", "w", encoding="utf-8") as file:
+            file.write(response.text)
         soup = BeautifulSoup(response.text, "html.parser")
         pagination = soup.select(".andes-pagination__button")
         if pagination == []:
@@ -77,25 +83,55 @@ def scrap_mercadolibre(site_url, city):
                 sub_site_url = page.select_one("a").get("href")
             if sub_site_url != None:
                 sub_response = requests.get(f"{sub_site_url}")
-                sub_soup = BeautifulSoup(sub_response.text, "html.parser")                
+                with open(f"{STATE}_{city}_{sub_site_url[-10:]}_mlibre_scrape.txt", "w", encoding="utf-8") as file:
+                    file.write(sub_response.text)
+                print("Scraping pagination...")
+                print(sub_site_url[-10:])
+                print(sub_site_url)
+                sub_soup = BeautifulSoup(sub_response.text, "html.parser")   
                 for listing in sub_soup.select(".ui-search-result__wrapper"):
-                    # propert_type = listing.select_one(".poly-component__headline").text.strip()
-                    propert_type = listing.find("tag", {"class": "poly-component__headline"})
-                    if listing.select_one(".poly-component__headline"):
+                    if listing.select_one(".ui-search-item__group__element"):
+                        propert_type = listing.select_one(".ui-search-item__group__element").text.strip()
+                    elif listing.select_one(".poly-component__headline"):
                         propert_type = listing.select_one(".poly-component__headline").text.strip()
                     else:
-                        propert_type = "Default Type"
-                    print(propert_type)
-                    if listing.select_one(".poly-component__title-wrapper")
+                        propert_type = "No Type"
+                    if listing.select_one(".poly-component__title-wrapper"):
                         title = listing.select_one(".poly-component__title-wrapper").select_one("a").text.strip()
-                        link = listing.select_one(".poly-component__title-wrapper").select_one("a").get("href")
+                        link = listing.select_one(".poly-component__title-wrapper").select_one("a").get("href") 
+                    elif listing.select_one(".ui-search-result__content-wrapper"):
+                        title =  listing.select_one(".ui-search-result__content-wrapper").select_one("a").text.strip()  
+                        link = listing.select_one(".ui-search-result__content-wrapper").select_one("a").get("href")
                     else:
-                        title = "Default Title"
-                        link  = "Default Link"
-                    location = listing.select_one(".poly-component__location").text.strip()
-                    price = listing.select_one(".poly-component__price").select_one(".poly-price__current").select_one(".andes-money-amount").select_one(".andes-money-amount__fraction").text.strip()
-                    currency = listing.select_one(".poly-component__price").select_one(".poly-price__current").select_one(".andes-money-amount").select_one(".andes-money-amount__currency-symbol").text.strip()
-                    attributes = listing.select_one(".poly-component__attributes-list").select_one(".poly-attributes-list").select(".poly-attributes-list__item")
+                        title = "No Title"
+                        link  = "No Link"
+                    print(propert_type)
+                    print("Title:")        
+                    print(title)
+                    print(link)
+                    if listing.select_one(".ui-search-item__location-container-grid"):
+                        location = listing.select_one(".ui-search-item__location-container-grid").text.strip()
+                    elif listing.select_one(".poly-component__location"):
+                        location = listing.select_one(".poly-component__location").text.strip()
+                    else:
+                        location = "No location"
+                    print("Location:")        
+                    print(location)
+                    if listing.select_one(".ui-search-price"):
+                        price = listing.select_one(".ui-search-price").select_one(".ui-search-price__second-line").select_one(".andes-money-amount").select_one(".andes-money-amount__fraction").text.strip()
+                    elif listing.select_one(".poly-component__price").select_one(".poly-price__current").select_one(".andes-money-amount").select_one(".andes-money-amount__fraction"):
+                        price = listing.select_one(".poly-component__price").select_one(".poly-price__current").select_one(".andes-money-amount").select_one(".andes-money-amount__fraction").text.strip()
+                    else:
+                        price = "No Price" 
+                    print(price)
+                    # currency = listing.select_one(".poly-component__price").select_one(".poly-price__current").select_one(".andes-money-amount").select_one(".andes-money-amount__currency-symbol").text.strip()
+                    currency = "MXN"
+                    if listing.select_one(".ui-search-item__attributes-container-grid"):
+                        attributes = listing.select_one(".ui-search-item__attributes-container-grid").select_one(".ui-search-card-attributes").select(".ui-search-card-attributes__attribute")
+                    elif listing.select_one(".poly-component__attributes-list"):
+                        attributes = listing.select_one(".poly-component__attributes-list").select_one(".poly-attributes-list").select(".poly-attributes-list__item")
+                    else:
+                        attributes = None    
                     bedrooms = "None" 
                     bathrooms = "None" 
                     land_sqm = "None"
@@ -103,15 +139,23 @@ def scrap_mercadolibre(site_url, city):
                     latitude = "None" 
                     longitude = "None" 
                     geometry = "None" 
-                    image = listing.select_one(".poly-card__portada").select_one("img").get("data-src") 
-                    for attribute in attributes:
-                        if attribute:
+                    if listing.select_one(".andes-carousel-snapped__wrapper"):
+                        image = listing.select_one(".andes-carousel-snapped__wrapper").select_one(".andes-carousel-snapped__slide").select_one(".ui-search-result-image__element").get("src")
+                    elif listing.select_one(".poly-card__portada"):
+                        image = listing.select_one(".poly-card__portada").select_one("img").get("data-src")         
+                    else:
+                        image = "no image"
+                    print(image)
+                    if attributes:
+                        for attribute in attributes:
                             if "construido" in attribute.text.strip() or "terreno" in attribute.text.strip():
                                 contruction_sqm = attribute.text.strip().split(" m")[0]
                             elif "mara" in attribute.text.strip():
-                                bedrooms = attribute.text.strip()
+                                bedrooms = attribute.text.strip().split(" ")[0]
                             else:
-                                bathrooms = attribute.text.strip()
+                                bathrooms = attribute.text.strip().split(" ")[0]
+                    print("Scraping details...")
+                    print(link)
                     mercado_libre_detail = scrape_mercadolibre_detail(link)
                     if mercado_libre_detail:
                         latitude = mercado_libre_detail["latitude"]
@@ -123,7 +167,6 @@ def scrap_mercadolibre(site_url, city):
                             "propert_type":propert_type,
                             "title": title,
                             "location": location,
-                            "link": link,
                             "image": image,
                             "link": link, 
                             "price": price,
@@ -140,6 +183,7 @@ def scrap_mercadolibre(site_url, city):
     return results            
 
 def scrape_site(site_url, city):
+    results = []
     if "mercadolibre" in site_url:
         return scrap_mercadolibre(site_url, city)
     elif "facebook" in site_url:
@@ -230,7 +274,7 @@ def retry_get_location_from_existing_df(df):
                 df.at[index, "latitude"] = location["latitude"]
                 df.at[index, "longitude"] = location["latitude"]
 # print(features)
-def df_snippets(type="shapefile_convert", df=None, geometry_field="geometry"):
+def df_snippets(type="shapefile_convert", df=None, geometry_field="geometry", request_response="", text_response_file=""):
     output = None
     if type == "shapefile_convert":
         gdf = gpd.GeoDataFrame(df, geometry='geometry')
@@ -251,6 +295,14 @@ def df_snippets(type="shapefile_convert", df=None, geometry_field="geometry"):
     elif type == "add_geometry":
         # df['geometry_wkt'] = df[f"f{geometry_field}"].apply(wkt.loads)
         df['geometry_wkt'] = df[f"{geometry_field}"].apply(lambda x: x.wkt)
+    elif type == 'save_response_in_text':
+        with open(f"{text_response_file}", "w", encoding="utf-8") as file:
+            file.write(request_response.text)
+        return "response file saved ${text_response_file}"
+    elif type == 'get_response_from_text':
+        with open(f"{text_response_file}", "r", encoding="utf-8") as file:
+            saved_content = file.read()
+        return "response file saved {text_response_file}"
     else:
         print("No snippet found")    
     return output
